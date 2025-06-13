@@ -10,7 +10,7 @@ import sqlite3
 from langchain_groq import ChatGroq
 import psycopg2
 
-st.set_page_config(page_title="LangChain: Chat with SQL DB", page_icon=":parrot:")
+st.set_page_config(page_title="SQL Chatbot", page_icon=":parrot:")
 st.title("LangChain: Chat with SQL DB :parrot:")
 
 LOCALDB = "USE_LOCALDB"
@@ -34,10 +34,6 @@ if not db_uri:
     st.info("Please enter the datbase information and uri.")
 if not api_key:
     st.info("Please enter your Groq API key.")
-
-## LLM model
-
-llm = ChatGroq(groq_api_key=api_key, model="llama-3.3-70b-versatile", streaming=True)
 
 st.cache_resource(ttl="2h")
 def configure_db(db_uri, postgres_host=None, postgres_port=None, postgres_user=None, postgres_password=None, postgres_db=None):
@@ -63,8 +59,10 @@ if db is None:
     st.error("Could not connect to the database. Please check your credentials and try again.")
     st.stop()
 
-## SQL Toolkit
+# Initialize the LLM
+llm = ChatGroq(groq_api_key=api_key, model="llama-3.3-70b-versatile", streaming=True)
 
+## SQL Toolkit
 toolkit = SQLDatabaseToolkit(db=db, llm=llm)
 
 agent = create_sql_agent(
@@ -74,13 +72,13 @@ agent = create_sql_agent(
     verbose=True
 )
 
+user_query = st.chat_input(placeholder="Ask anything from the database: e.g. What are the tables in this database?")
+
 if "messages" not in st.session_state or st.sidebar.button("Clear message history"):
-    st.session_state["messages"] = [{"role": "assistant", "content": "How can I help you?"}]
+    st.session_state["messages"] = [{"role": "assistant", "content": "I am your SQL Assistant"}]
 
 for msg in st.session_state.messages:
     st.chat_message(msg["role"]).write(msg["content"])
-
-user_query = st.chat_input(placeholder="Ask anything from the database: e.g. What are the tables in this database?")
 
 if user_query:
     st.session_state.messages.append({"role": "user", "content": user_query})
