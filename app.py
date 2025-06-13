@@ -28,12 +28,19 @@ if radio_choice == 'Postgres Database':
 else:
     db_uri = LOCALDB
 
-api_key = st.sidebar.text_input("Groq API Key", type="password", placeholder="Enter your Groq API key")
-
 if not db_uri:
     st.info("Please enter the datbase information and uri.")
-if not api_key:
-    st.info("Please enter your Groq API key.")
+
+@st.cache_resource
+def initiate_llm(api_key):
+    if not api_key:
+        st.error("Please enter your Groq API key.")
+        st.stop()
+    return ChatGroq(groq_api_key=api_key, model="llama-3.3-70b-versatile", streaming=True)
+
+api_key = st.sidebar.text_input("Groq API Key", type="password", placeholder="Enter your Groq API key")
+
+llm = initiate_llm(api_key)
 
 st.cache_resource(ttl="2h")
 def configure_db(db_uri, postgres_host=None, postgres_port=None, postgres_user=None, postgres_password=None, postgres_db=None):
@@ -58,9 +65,6 @@ else:
 if db is None:
     st.error("Could not connect to the database. Please check your credentials and try again.")
     st.stop()
-
-# Initialize the LLM
-llm = ChatGroq(groq_api_key=api_key, model="llama-3.3-70b-versatile", streaming=True)
 
 ## SQL Toolkit
 toolkit = SQLDatabaseToolkit(db=db, llm=llm)
